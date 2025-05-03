@@ -19,39 +19,36 @@ import { Logger } from "../Helpers/Logger.ts";
 import { requestGithubData } from "./request.ts";
 
 // Need to be here - Exporting from another file makes array of null
-export const TOKENS = [
-  Deno.env.get("GITHUB_TOKEN1"),
-  Deno.env.get("GITHUB_TOKEN2"),
-];
+export const TOKENS = [process.env.GITHUB_TOKEN];
 
 export class GithubApiService extends GithubRepository {
   async requestUserRepository(
-    username: string,
+    username: string
   ): Promise<GitHubUserRepository | ServiceError> {
     return await this.executeQuery<GitHubUserRepository>(queryUserRepository, {
       username,
     });
   }
   async requestUserActivity(
-    username: string,
+    username: string
   ): Promise<GitHubUserActivity | ServiceError> {
     return await this.executeQuery<GitHubUserActivity>(queryUserActivity, {
       username,
     });
   }
   async requestUserIssue(
-    username: string,
+    username: string
   ): Promise<GitHubUserIssue | ServiceError> {
     return await this.executeQuery<GitHubUserIssue>(queryUserIssue, {
       username,
     });
   }
   async requestUserPullRequest(
-    username: string,
+    username: string
   ): Promise<GitHubUserPullRequest | ServiceError> {
     return await this.executeQuery<GitHubUserPullRequest>(
       queryUserPullRequest,
-      { username },
+      { username }
     );
   }
   async requestUserInfo(username: string): Promise<UserInfo | ServiceError> {
@@ -69,11 +66,7 @@ export class GithubApiService extends GithubRepository {
       this.requestUserPullRequest(username),
     ]);
     const [activity, issue, pullRequest] = await promises;
-    const status = [
-      activity.status,
-      issue.status,
-      pullRequest.status,
-    ];
+    const status = [activity.status, issue.status, pullRequest.status];
 
     if (status.includes("rejected")) {
       Logger.error(`Can not find a user with username:' ${username}'`);
@@ -84,25 +77,21 @@ export class GithubApiService extends GithubRepository {
       (activity as PromiseFulfilledResult<GitHubUserActivity>).value,
       (issue as PromiseFulfilledResult<GitHubUserIssue>).value,
       (pullRequest as PromiseFulfilledResult<GitHubUserPullRequest>).value,
-      repository,
+      repository
     );
   }
 
   async executeQuery<T = unknown>(
     query: string,
-    variables: { [key: string]: string },
+    variables: { [key: string]: string }
   ) {
     try {
       const retry = new Retry(
         TOKENS.length,
-        CONSTANTS.DEFAULT_GITHUB_RETRY_DELAY,
+        CONSTANTS.DEFAULT_GITHUB_RETRY_DELAY
       );
       return await retry.fetch<Promise<T>>(async ({ attempt }) => {
-        return await requestGithubData(
-          query,
-          variables,
-          TOKENS[attempt],
-        );
+        return await requestGithubData(query, variables, TOKENS[attempt]);
       });
     } catch (error) {
       if (error.cause instanceof ServiceError) {
